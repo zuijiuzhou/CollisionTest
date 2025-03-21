@@ -4,7 +4,15 @@
 
 #include <unordered_map>
 
-#include "fcl/broadphase/detail/hierarchy_tree.h"
+#include <fcl/broadphase/detail/hierarchy_tree.h>
+#include <fcl/geometry/octree/octree.h>
+
+// #include <Eigen/Geometry>
+
+/** @brief hyperbrain project */
+namespace hyperbrain {
+/** @brief robots */
+namespace robot {
 
 template <typename S>
 class CollisionManagerAABBTree : public CollisionManager<S> {
@@ -16,49 +24,130 @@ public:
     CollisionManagerAABBTree();
 
 public:
-    /// @brief add objects to the manager
     void registerObjects(const std::vector<fcl::CollisionObject<S>*>& other_objs) override;
 
-    /// @brief add one object to the manager
     void registerObject(fcl::CollisionObject<S>* obj) override;
 
-    /// @brief remove one object from the managerk
     void unregisterObject(fcl::CollisionObject<S>* obj) override;
 
-    /// @brief initialize the manager, related with the specific type of manager
     void setup() override;
 
-    /// @brief update the condition of manager
     void update() override;
 
-    /// @brief update the manager by explicitly given the object updated
     void update(fcl::CollisionObject<S>* updated_obj) override;
 
-    /// @brief update the manager by explicitly given the set of objects update
     void update(const std::vector<fcl::CollisionObject<S>*>& updated_objs) override;
 
-    /// @brief clear the manager
     void clear() override;
 
-    /// @brief return the objects managed by the manager
     void getObjects(std::vector<fcl::CollisionObject<S>*>& objs) const override;
 
-    /// @brief whether the manager is empty
     bool empty() const override;
 
-    /// @brief the number of objects managed by the manager
     size_t size() const override;
 
-    virtual void withInDistance(fcl::CollisionObject<S>* obj, void* cdata, fcl::DistanceCallBack<S> callback) override;
+    virtual void collide(CollisionData<S>& cdata, CollisionCallBack<S> callback) const override;
 
-    virtual void withInDistance(void* cdata, fcl::DistanceCallBack<S> callback) override;
+    virtual void collide(CollisionManager<S>* other, CollisionData<S>& cdata, CollisionCallBack<S> callback) const override;
 
-    virtual void withInDistance(CollisionManager<S>* other, void* cdata, fcl::DistanceCallBack<S> callback) override;
+    virtual void withInDistance(fcl::CollisionObject<S>* obj, WithInDistanceData<S>& cdata, WithInDistanceCallBack<S> callback) const override;
+
+    virtual void withInDistance(WithInDistanceData<S>& cdata, WithInDistanceCallBack<S> callback) const override;
+
+    virtual void withInDistance(CollisionManager<S>* other, WithInDistanceData<S>& cdata, WithInDistanceCallBack<S> callback) const override;
 
     const fcl::detail::HierarchyTree<fcl::AABB<S>>& getTree() const;
 
 private:
     void update_(fcl::CollisionObject<S>* updated_obj);
+
+    bool collisionRecurse_(
+        typename CollisionManagerAABBTree<S>::DynamicAABBNode* root1,
+        const fcl::OcTree<S>* tree2,
+        const typename fcl::OcTree<S>::OcTreeNode* root2,
+        const fcl::AABB<S>& root2_bv,
+        const fcl::Transform3<S>& tf2,
+        CollisionData<S>& cdata,
+        CollisionCallBack<S> callback) const;
+
+    template <typename Derived>
+    bool collisionRecurse_(
+        typename CollisionManagerAABBTree<S>::DynamicAABBNode* root1,
+        const fcl::OcTree<S>* tree2,
+        const typename fcl::OcTree<S>::OcTreeNode* root2,
+        const fcl::AABB<S>& root2_bv,
+        const Eigen::MatrixBase<Derived>& translation2,
+        CollisionData<S>& cdata,
+        CollisionCallBack<S> callback) const;
+
+    bool collisionRecurse(
+        typename CollisionManagerAABBTree<S>::DynamicAABBNode* root1,
+        const fcl::OcTree<S>* tree2,
+        const typename fcl::OcTree<S>::OcTreeNode* root2,
+        const fcl::AABB<S>& root2_bv,
+        const fcl::Transform3<S>& tf2,
+        CollisionData<S>& cdata,
+        CollisionCallBack<S> callback) const;
+
+    bool collisionRecurse(
+        typename CollisionManagerAABBTree<S>::DynamicAABBNode* root1,
+        typename CollisionManagerAABBTree<S>::DynamicAABBNode* root2,
+        CollisionData<S>& cdata,
+        CollisionCallBack<S> callback) const;
+
+    bool collisionRecurse(
+        typename CollisionManagerAABBTree<S>::DynamicAABBNode* root,
+        fcl::CollisionObject<S>* query,
+        CollisionData<S>& cdata,
+        CollisionCallBack<S> callback) const;
+
+    bool selfCollisionRecurse(
+        typename CollisionManagerAABBTree<S>::DynamicAABBNode* root,
+        CollisionData<S>& cdata,
+        CollisionCallBack<S> callback) const;
+
+
+    bool withInDistanceRecurse_(
+        typename CollisionManagerAABBTree<S>::DynamicAABBNode* root1,
+        const fcl::OcTree<S>* tree2,
+        const typename fcl::OcTree<S>::OcTreeNode* root2,
+        const fcl::AABB<S>& root2_bv,
+        const fcl::Transform3<S>& tf2,
+        WithInDistanceData<S>& cdata,
+        WithInDistanceCallBack<S> callback) const;
+
+    template <typename Derived>
+    bool withInDistanceRecurse_(
+        typename CollisionManagerAABBTree<S>::DynamicAABBNode* root1,
+        const fcl::OcTree<S>* tree2,
+        const typename fcl::OcTree<S>::OcTreeNode* root2,
+        const fcl::AABB<S>& root2_bv,
+        const Eigen::MatrixBase<Derived>& translation2,
+        WithInDistanceData<S>& cdata,
+        WithInDistanceCallBack<S> callback) const;
+
+    bool withInDistanceRecurse(typename CollisionManagerAABBTree<S>::DynamicAABBNode* root1,
+                               const fcl::OcTree<S>* tree2,
+                               const typename fcl::OcTree<S>::OcTreeNode* root2,
+                               const fcl::AABB<S>& root2_bv,
+                               const fcl::Transform3<S>& tf2,
+                               WithInDistanceData<S>& cdata,
+                               WithInDistanceCallBack<S> callback) const;
+
+    bool withInDistanceRecurse(
+        typename CollisionManagerAABBTree<S>::DynamicAABBNode* root1,
+        typename CollisionManagerAABBTree<S>::DynamicAABBNode* root2,
+        WithInDistanceData<S>& cdata,
+        WithInDistanceCallBack<S> callback) const;
+
+    bool withInDistanceRecurse(typename CollisionManagerAABBTree<S>::DynamicAABBNode* root,
+                               fcl::CollisionObject<S>* query,
+                               WithInDistanceData<S>& cdata,
+                               WithInDistanceCallBack<S> callback) const;
+
+    bool selfWithInDistanceRecurse(typename CollisionManagerAABBTree<S>::DynamicAABBNode* root,
+                                   WithInDistanceData<S>& cdata,
+                                   WithInDistanceCallBack<S> callback) const;
 
 public:
     int max_tree_nonbalanced_level;
@@ -79,3 +168,5 @@ private:
 
 using CollisionManagerAABBTreef = CollisionManagerAABBTree<float>;
 using CollisionManagerAABBTreed = CollisionManagerAABBTree<double>;
+} // namespace robot
+} // namespace hyperbrain

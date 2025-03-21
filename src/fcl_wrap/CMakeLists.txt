@@ -13,6 +13,7 @@ file(GLOB HEADER_FILES *.h)
 
 add_library(
     ${CURRENT_TARGET_NAME} 
+    STATIC
     ${SRC_FILES} 
     ${HEADER_FILES}
 )
